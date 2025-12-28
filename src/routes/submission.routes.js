@@ -28,4 +28,21 @@ router.get("/campaign/:campaignId", auth, role(["brand"]), async (req, res) => {
   }
 });
 
+router.get("/my-wins", auth, role(["creator"]), async (req, res) => {
+  const wins = await Submission.find({
+    creator: req.user.id,
+    status: "winner",
+  }).populate("campaign", "title");
+
+  res.json(wins);
+});
+
+router.get("/mine", auth, role(["creator"]), async (req, res) => {
+  const subs = await Submission.find({
+    creator: req.user.id,
+  });
+
+  res.json(subs);
+});
+
 module.exports = router;
