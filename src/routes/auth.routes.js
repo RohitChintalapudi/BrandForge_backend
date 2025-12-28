@@ -5,4 +5,11 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
 
+router.get("/me", authMiddleware, (req, res) => {
+  res.json({
+    id: req.user.id,
+    role: req.user.role,
+  });
+});
+
 module.exports = router;
