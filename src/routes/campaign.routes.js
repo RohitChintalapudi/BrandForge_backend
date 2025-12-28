@@ -1,19 +1,24 @@
-import express from "express";
-import authMiddleware from "../middleware/auth.middleware.js";
-import roleMiddleware from "../middleware/role.middleware.js";
-import {
+const express = require("express");
+const authMiddleware = require("../middleware/auth.middleware");
+const roleMiddleware = require("../middleware/role.middleware");
+
+const {
   createCampaign,
   getAllCampaigns,
   approveCampaign,
-} from "../controllers/campaign.controller.js";
-import Campaign from "../models/Campaign.js";
+} = require("../controllers/campaign.controller");
+
+const Campaign = require("../models/Campaign");
 
 const router = express.Router();
 
+// Brand creates campaign
 router.post("/", authMiddleware, roleMiddleware(["brand"]), createCampaign);
+
+// Creator gets approved campaigns
 router.get("/", authMiddleware, getAllCampaigns);
 
-// 👇 ADD THIS (admin only)
+// Admin gets pending campaigns
 router.get(
   "/pending",
   authMiddleware,
@@ -24,6 +29,7 @@ router.get(
   }
 );
 
+// Admin approves campaign
 router.put(
   "/:id/approve",
   authMiddleware,
@@ -31,4 +37,4 @@ router.put(
   approveCampaign
 );
 
-export default router;
+module.exports = router;
