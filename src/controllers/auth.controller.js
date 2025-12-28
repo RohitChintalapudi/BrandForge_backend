@@ -3,28 +3,36 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  try {
+    const { name, email, password, role } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields required" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    res.status(201).json({ message: "Registered successfully" });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+    res.status(500).json({ message: "Registration failed" });
   }
-
-  const existing = await User.findOne({ email });
-  if (existing) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    role,
-  });
-
-  res.status(201).json({ message: "Registered successfully" });
 };
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
