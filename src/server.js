@@ -13,7 +13,7 @@ connectDB();
 app.use(
   cors({
     origin: [
-      "http://localhost:3000", // local dev
+      "http://localhost:5173", // local dev
       "https://brand-forge-frontend.vercel.app", // deployed frontend
     ],
     credentials: true,
