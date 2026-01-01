@@ -9,13 +9,10 @@ const {
   selectWinner,
 } = require("../controllers/submission.controller");
 
-// Creator submits content
 router.post("/", auth, role(["creator"]), createSubmission);
 
-// Brand selects winner
 router.put("/:id/winner", auth, role(["brand"]), selectWinner);
 
-// Brand: get submissions for a campaign
 router.get("/campaign/:campaignId", auth, role(["brand"]), async (req, res) => {
   try {
     const submissions = await Submission.find({

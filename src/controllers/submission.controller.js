@@ -6,7 +6,6 @@ exports.createSubmission = async (req, res) => {
     return res.status(400).json({ message: "Invalid URL" });
   }
 
-  // 🔒 CHECK: already submitted?
   const existing = await Submission.findOne({
     campaign: campaignId,
     creator: req.user.id,

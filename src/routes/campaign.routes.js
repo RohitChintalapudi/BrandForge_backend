@@ -12,13 +12,10 @@ const Campaign = require("../models/Campaign");
 
 const router = express.Router();
 
-// Brand creates campaign
 router.post("/", authMiddleware, roleMiddleware(["brand"]), createCampaign);
 
-// Creator gets approved campaigns
 router.get("/", authMiddleware, getAllCampaigns);
 
-// Admin gets pending campaigns
 router.get(
   "/pending",
   authMiddleware,
@@ -29,7 +26,6 @@ router.get(
   }
 );
 
-// Admin approves campaign
 router.put(
   "/:id/approve",
   authMiddleware,
