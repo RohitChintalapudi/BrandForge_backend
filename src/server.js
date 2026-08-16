@@ -25,6 +25,7 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/campaigns", require("./routes/campaign.routes"));
 app.use("/api/submissions", require("./routes/submission.routes"));
 
+//using this for health check of the server
 app.get("/", (req, res) => {
   res.send("BrandForge API is running 🚀");
 });

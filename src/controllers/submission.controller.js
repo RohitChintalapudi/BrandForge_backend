@@ -1,4 +1,5 @@
 const Submission = require("../models/Submission");
+
 exports.createSubmission = async (req, res) => {
   const { campaignId, contentUrl } = req.body;
 

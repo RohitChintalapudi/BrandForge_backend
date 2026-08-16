@@ -1,9 +1,7 @@
 const router = require("express").Router();
 const Submission = require("../models/Submission");
-
 const auth = require("../middleware/auth.middleware");
 const role = require("../middleware/role.middleware");
-
 const {
   createSubmission,
   selectWinner,

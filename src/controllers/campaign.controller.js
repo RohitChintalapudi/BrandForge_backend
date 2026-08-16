@@ -24,7 +24,13 @@ exports.createCampaign = async (req, res) => {
 };
 exports.getAllCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({ status: "approved" });
+    // Return all approved campaigns OR campaigns owned by the requesting brand user
+    const campaigns = await Campaign.find({
+      $or: [
+        { status: "approved" },
+        { brand: req.user.id }
+      ]
+    });
     res.json(campaigns);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch campaigns" });
