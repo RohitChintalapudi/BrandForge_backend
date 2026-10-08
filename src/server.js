@@ -37,6 +37,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/campaigns", require("./routes/campaign.routes"));
 app.use("/api/submissions", require("./routes/submission.routes"));
+app.use("/api/analytics", require("./routes/analytics.routes"));
 
 // 404 Catch-All Handler
 app.use((req, res) => {
