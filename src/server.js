@@ -3,11 +3,17 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
+const securityHeaders = require("./middleware/security.middleware");
+const { apiLimiter } = require("./middleware/rateLimiter.middleware");
 const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
 
 connectDB();
+
+// Global Security & Rate Limiting Middleware
+app.use(securityHeaders);
+app.use(apiLimiter);
 
 app.use(
   cors({
