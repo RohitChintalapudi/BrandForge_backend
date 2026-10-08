@@ -15,7 +15,9 @@ router.get("/campaign/:campaignId", auth, role(["brand"]), async (req, res) => {
   try {
     const submissions = await Submission.find({
       campaign: req.params.campaignId,
-    }).populate("creator", "name email");
+    })
+      .sort({ createdAt: -1 })
+      .populate("creator", "name email");
 
     res.json(submissions);
   } catch (err) {
@@ -24,20 +26,32 @@ router.get("/campaign/:campaignId", auth, role(["brand"]), async (req, res) => {
 });
 
 router.get("/my-wins", auth, role(["creator"]), async (req, res) => {
-  const wins = await Submission.find({
-    creator: req.user.id,
-    status: "winner",
-  }).populate("campaign", "title");
+  try {
+    const wins = await Submission.find({
+      creator: req.user.id,
+      status: "winner",
+    })
+      .sort({ createdAt: -1 })
+      .populate("campaign", "title reward deadline status");
 
-  res.json(wins);
+    res.json(wins);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch winning submissions" });
+  }
 });
 
 router.get("/mine", auth, role(["creator"]), async (req, res) => {
-  const subs = await Submission.find({
-    creator: req.user.id,
-  });
+  try {
+    const subs = await Submission.find({
+      creator: req.user.id,
+    })
+      .sort({ createdAt: -1 })
+      .populate("campaign", "title reward deadline status");
 
-  res.json(subs);
+    res.json(subs);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch your submissions" });
+  }
 });
 
 module.exports = router;
