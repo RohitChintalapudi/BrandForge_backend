@@ -2,21 +2,46 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const EMAIL_REGEX = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields required" });
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (typeof password === "string" && password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters long" });
+    const trimmedName = String(name).trim();
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      return res.status(400).json({
+        message: "Name must be between 2 and 50 characters",
+      });
     }
 
     const sanitizedEmail = String(email).toLowerCase().trim();
+    if (!EMAIL_REGEX.test(sanitizedEmail)) {
+      return res.status(400).json({
+        message: "Please provide a valid email address",
+      });
+    }
+
+    if (!PASSWORD_REGEX.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 6 characters long and contain at least one letter and one number",
+      });
+    }
+
+    const allowedRoles = ["brand", "creator", "admin"];
+    const userRole = role ? String(role).toLowerCase().trim() : "creator";
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(400).json({
+        message: `Role must be one of: ${allowedRoles.join(", ")}`,
+      });
+    }
+
     const existing = await User.findOne({ email: sanitizedEmail });
     if (existing) {
       return res.status(400).json({ message: "User already exists" });
@@ -25,10 +50,10 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      name,
+      name: trimmedName,
       email: sanitizedEmail,
       password: hashedPassword,
-      role,
+      role: userRole,
     });
 
     res.status(201).json({
@@ -93,6 +118,24 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Login failed" });
+  }
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user profile" });
   }
 };
 
