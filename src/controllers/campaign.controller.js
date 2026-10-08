@@ -1,5 +1,10 @@
 const Campaign = require("../models/Campaign");
 const Submission = require("../models/Submission");
+const {
+  getPaginationOptions,
+  buildPaginationMetadata,
+  escapeRegex,
+} = require("../utils/queryHelper");
 
 exports.createCampaign = async (req, res) => {
   try {
@@ -43,13 +48,59 @@ exports.createCampaign = async (req, res) => {
 
 exports.getAllCampaigns = async (req, res) => {
   try {
-    // Return all approved campaigns OR campaigns owned by the requesting brand user
-    const campaigns = await Campaign.find({
-      $or: [{ status: "approved" }, { brand: req.user.id }],
-    })
-      .sort({ createdAt: -1 })
-      .populate("brand", "name email");
+    const { page, limit, skip } = getPaginationOptions(req.query, 10, 50);
+    const { search, status, sortBy = "createdAt", sortOrder = "desc" } = req.query;
 
+    // Base filter: Approved campaigns OR campaigns owned by requesting brand/admin
+    const baseCondition =
+      req.user.role === "admin"
+        ? {}
+        : { $or: [{ status: "approved" }, { brand: req.user.id }] };
+
+    const queryFilter = { ...baseCondition };
+
+    // Specific status filter (e.g. status=approved or status=pending)
+    if (status) {
+      queryFilter.status = status;
+    }
+
+    // Search filter across title and description
+    if (search && search.trim()) {
+      const safeSearch = escapeRegex(search.trim());
+      queryFilter.$and = queryFilter.$and || [];
+      queryFilter.$and.push({
+        $or: [
+          { title: { $regex: safeSearch, $options: "i" } },
+          { description: { $regex: safeSearch, $options: "i" } },
+        ],
+      });
+    }
+
+    const sortConfig = {};
+    const validSortFields = ["createdAt", "deadline", "title"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    sortConfig[sortField] = sortOrder === "asc" ? 1 : -1;
+
+    const [campaigns, totalCount] = await Promise.all([
+      Campaign.find(queryFilter)
+        .sort(sortConfig)
+        .skip(skip)
+        .limit(limit)
+        .populate("brand", "name email"),
+      Campaign.countDocuments(queryFilter),
+    ]);
+
+    const pagination = buildPaginationMetadata(totalCount, page, limit);
+
+    // If request includes query params like page or search, return structured response
+    if (req.query.page || req.query.limit || req.query.search || req.query.status) {
+      return res.json({
+        data: campaigns,
+        pagination,
+      });
+    }
+
+    // Backwards compatibility with frontend direct array expectations
     res.json(campaigns);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch campaigns" });
