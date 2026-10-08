@@ -21,8 +21,14 @@ router.get(
   authMiddleware,
   roleMiddleware(["admin"]),
   async (req, res) => {
-    const campaigns = await Campaign.find({ status: "pending" });
-    res.json(campaigns);
+    try {
+      const campaigns = await Campaign.find({ status: "pending" })
+        .sort({ createdAt: -1 })
+        .populate("brand", "name email");
+      res.json(campaigns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending campaigns" });
+    }
   }
 );
 

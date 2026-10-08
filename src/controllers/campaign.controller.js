@@ -19,23 +19,32 @@ exports.createCampaign = async (req, res) => {
 
     res.status(201).json(campaign);
   } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
     res.status(500).json({ message: "Failed to create campaign" });
   }
 };
+
 exports.getAllCampaigns = async (req, res) => {
   try {
     // Return all approved campaigns OR campaigns owned by the requesting brand user
     const campaigns = await Campaign.find({
       $or: [
         { status: "approved" },
-        { brand: req.user.id }
-      ]
-    });
+        { brand: req.user.id },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .populate("brand", "name email");
+
     res.json(campaigns);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch campaigns" });
   }
 };
+
 exports.approveCampaign = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
@@ -47,8 +56,12 @@ exports.approveCampaign = async (req, res) => {
     campaign.status = "approved";
     await campaign.save();
 
-    res.json({ message: "Campaign approved" });
+    res.json({ message: "Campaign approved", campaign });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
     res.status(500).json({ message: "Failed to approve campaign" });
   }
 };
