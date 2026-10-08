@@ -7,6 +7,8 @@ const {
   createCampaign,
   getAllCampaigns,
   getCampaignById,
+  updateCampaign,
+  completeCampaign,
   approveCampaign,
   rejectCampaign,
   deleteCampaign,
@@ -37,6 +39,22 @@ router.get(
 );
 
 router.get("/:id", authMiddleware, validateObjectId(["id"]), getCampaignById);
+
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["brand", "admin"]),
+  validateObjectId(["id"]),
+  updateCampaign
+);
+
+router.put(
+  "/:id/complete",
+  authMiddleware,
+  roleMiddleware(["brand", "admin"]),
+  validateObjectId(["id"]),
+  completeCampaign
+);
 
 router.put(
   "/:id/approve",

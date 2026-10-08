@@ -7,6 +7,7 @@ const validateObjectId = require("../middleware/validateObjectId.middleware");
 const {
   createSubmission,
   selectWinner,
+  reviewSubmission,
 } = require("../controllers/submission.controller");
 
 router.post("/", auth, role(["creator"]), createSubmission);
@@ -17,6 +18,14 @@ router.put(
   role(["brand", "admin"]),
   validateObjectId(["id"]),
   selectWinner
+);
+
+router.put(
+  "/:id/review",
+  auth,
+  role(["brand", "admin"]),
+  validateObjectId(["id"]),
+  reviewSubmission
 );
 
 router.get(

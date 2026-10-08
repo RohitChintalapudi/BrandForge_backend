@@ -131,6 +131,79 @@ exports.getCampaignById = async (req, res) => {
   }
 };
 
+exports.updateCampaign = async (req, res) => {
+  try {
+    const { title, description, reward, deadline } = req.body;
+
+    const campaign = await Campaign.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
+    const isOwner = campaign.brand.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized to edit this campaign" });
+    }
+
+    if (campaign.status === "completed" || campaign.status === "rejected") {
+      return res.status(400).json({
+        message: `Cannot edit a ${campaign.status} campaign`,
+      });
+    }
+
+    if (title) campaign.title = String(title).trim();
+    if (description) campaign.description = String(description).trim();
+    if (reward) campaign.reward = String(reward).trim();
+
+    if (deadline) {
+      const parsedDeadline = new Date(deadline);
+      if (isNaN(parsedDeadline.getTime()) || parsedDeadline.getTime() <= Date.now()) {
+        return res.status(400).json({
+          message: "Updated deadline must be a valid future date",
+        });
+      }
+      campaign.deadline = parsedDeadline;
+    }
+
+    await campaign.save();
+
+    res.json({ message: "Campaign updated successfully", campaign });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+    res.status(500).json({ message: "Failed to update campaign" });
+  }
+};
+
+exports.completeCampaign = async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
+    const isOwner = campaign.brand.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized to complete this campaign" });
+    }
+
+    if (campaign.status === "completed") {
+      return res.status(400).json({ message: "Campaign is already marked as completed" });
+    }
+
+    campaign.status = "completed";
+    await campaign.save();
+
+    res.json({ message: "Campaign marked as completed", campaign });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to complete campaign" });
+  }
+};
+
 exports.approveCampaign = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id);

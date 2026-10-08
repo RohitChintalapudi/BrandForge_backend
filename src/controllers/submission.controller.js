@@ -107,6 +107,7 @@ exports.selectWinner = async (req, res) => {
     }
 
     submission.status = "winner";
+    submission.reviewedAt = new Date();
     await submission.save();
 
     res.json({ message: "Winner selected successfully", submission });
@@ -116,5 +117,49 @@ exports.selectWinner = async (req, res) => {
       return res.status(400).json({ message: messages.join(", ") });
     }
     res.status(500).json({ message: "Failed to select winner" });
+  }
+};
+
+exports.reviewSubmission = async (req, res) => {
+  try {
+    const { feedback, status } = req.body;
+
+    const submission = await Submission.findById(req.params.id).populate("campaign");
+    if (!submission) {
+      return res.status(404).json({ message: "Submission not found" });
+    }
+
+    const campaign = submission.campaign;
+    const isBrandOwner = campaign && campaign.brand.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isBrandOwner && !isAdmin) {
+      return res.status(403).json({
+        message: "Unauthorized: You can only review submissions for your own campaigns",
+      });
+    }
+
+    if (status && !["pending", "rejected", "winner"].includes(status)) {
+      return res.status(400).json({ message: "Invalid submission review status" });
+    }
+
+    if (feedback !== undefined) {
+      submission.feedback = String(feedback).trim();
+    }
+
+    if (status) {
+      submission.status = status;
+    }
+
+    submission.reviewedAt = new Date();
+    await submission.save();
+
+    res.json({ message: "Submission review updated successfully", submission });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+    res.status(500).json({ message: "Failed to update submission review" });
   }
 };

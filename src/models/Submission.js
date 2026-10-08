@@ -34,6 +34,16 @@ const submissionSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
+    feedback: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Feedback notes cannot exceed 500 characters"],
+      default: "",
+    },
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
