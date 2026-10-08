@@ -1,11 +1,15 @@
 const express = require("express");
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
+const validateObjectId = require("../middleware/validateObjectId.middleware");
 
 const {
   createCampaign,
   getAllCampaigns,
+  getCampaignById,
   approveCampaign,
+  rejectCampaign,
+  deleteCampaign,
 } = require("../controllers/campaign.controller");
 
 const Campaign = require("../models/Campaign");
@@ -32,11 +36,30 @@ router.get(
   }
 );
 
+router.get("/:id", authMiddleware, validateObjectId(["id"]), getCampaignById);
+
 router.put(
   "/:id/approve",
   authMiddleware,
   roleMiddleware(["admin"]),
+  validateObjectId(["id"]),
   approveCampaign
+);
+
+router.put(
+  "/:id/reject",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  validateObjectId(["id"]),
+  rejectCampaign
+);
+
+router.delete(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["brand", "admin"]),
+  validateObjectId(["id"]),
+  deleteCampaign
 );
 
 module.exports = router;
