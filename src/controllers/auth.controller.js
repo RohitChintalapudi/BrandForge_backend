@@ -10,61 +10,90 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const existing = await User.findOne({ email });
+    if (typeof password === "string" && password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters long" });
+    }
+
+    const sanitizedEmail = String(email).toLowerCase().trim();
+    const existing = await User.findOne({ email: sanitizedEmail });
     if (existing) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
+    const user = await User.create({
       name,
-      email,
+      email: sanitizedEmail,
       password: hashedPassword,
       role,
     });
 
-    res.status(201).json({ message: "Registered successfully" });
+    res.status(201).json({
+      message: "Registered successfully",
+      user,
+    });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({ message: "Email already registered" });
+    }
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
     }
     res.status(500).json({ message: "Registration failed" });
   }
 };
 
-
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+
+    const sanitizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: sanitizedEmail });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      message: "Login successful",
+      role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Login failed" });
   }
-
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none", 
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-
-  res.json({
-    message: "Login successful",
-    role: user.role,
-  });
 };
 
 exports.logout = (req, res) => {
